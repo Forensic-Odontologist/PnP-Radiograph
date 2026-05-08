@@ -1,0 +1,7 @@
+numpy>=1.24
+opencv-python>=4.8
+matplotlib>=3.7
+pydicom>=2.4
+pylibjpeg>=2.0
+pylibjpeg-libjpeg>=2.1
+trimesh>=4.0
