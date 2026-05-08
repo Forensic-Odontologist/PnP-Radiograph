@@ -1,7 +1,5 @@
 # Novice single-image workflow (CBCT × one plain radiograph)
 
-This folder is a **simplified** companion to `Github/`. It targets users who need:
-
 - **One** plain radiograph supplied as **DICOM only** (no JPG/PNG/TIFF pipeline in this version).
 - **Scenario A** — fixed focal length from **DICOM** geometry (tags when present, documented defaults otherwise).
 
