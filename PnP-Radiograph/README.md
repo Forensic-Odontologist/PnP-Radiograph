@@ -11,6 +11,8 @@ Scripts do **not** embed case-specific device names or manuscript context; defau
 
 ## Installation
 
+download and unzip PnP-Radiograph_V1.0.zip
+
 ```bash
 cd PnP-Radiograph
 python3 -m venv .venv
