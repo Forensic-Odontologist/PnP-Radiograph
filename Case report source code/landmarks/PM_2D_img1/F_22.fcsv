@@ -1,0 +1,4 @@
+# Markups fiducial file version = 5.10
+# CoordinateSystem = LPS
+# columns = id,x,y,z,ow,ox,oy,oz,vis,sel,lock,label,desc,associatedNodeID
+1,168.4481230417677,279.0152855826169,0,0,0,0,1,1,1,0,44_Apex,,vtkMRMLScalarVolumeNode2,2,0
