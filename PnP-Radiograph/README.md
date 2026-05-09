@@ -1,5 +1,7 @@
 # Novice single-image workflow (CBCT × one plain radiograph)
 
+This folder is a **simplified** companion to `Github/`. It targets users who need:
+
 - **One** plain radiograph supplied as **DICOM only** (no JPG/PNG/TIFF pipeline in this version).
 - **Scenario A** — fixed focal length from **DICOM** geometry (tags when present, documented defaults otherwise).
 
@@ -8,8 +10,6 @@ Scripts do **not** embed case-specific device names or manuscript context; defau
 ---
 
 ## Installation
-
-download and unzip PnP-Radiograph_V1.0.zip
 
 ```bash
 cd PnP-Radiograph
@@ -31,11 +31,9 @@ PnP-Radiograph/
 ├── 03_figures.py          # Step 3 — overlays & mesh silhouettes
 ├── data/input/            # YOU: exactly ONE DICOM radiograph
 ├── landmarks/
-│   ├── CBCT_3D/           # 3D FCSV landmarks (CBCT / LPS, mm)
-│   └── PM_2D/             # 2D FCSV landmarks on the radiograph
-├── meshes/
-│   ├── mesh_restorations.obj
-│   └── mesh_bone.obj
+│   ├── 3D_Landmarks/      # 3D FCSV landmarks (volume / LPS, mm)
+│   └── 2D_Landmarks/      # 2D FCSV landmarks on the radiograph
+├── meshes/                # One or more *.obj (any filenames)
 └── output/                # generated (ignored by git)
     ├── pm_full.png
     ├── case_metadata.json
@@ -49,9 +47,12 @@ PnP-Radiograph/
 
 1. **One DICOM** in `data/input/` (see `data/input/README.md`).
 2. **Landmarks** exported from 3D Slicer as `.fcsv`:
-   - Same **labels** in `CBCT_3D` and `PM_2D` (≥ four pairs).
+   - Same **labels** in `3D_Landmarks` and `2D_Landmarks` (≥ four pairs).
    - Annotate the CR in Slicer; `case_metadata.json` stores `lm_2d_pixel_mm` from DICOM `ImagerPixelSpacing` / `PixelSpacing`.
-3. **Meshes** aligned with the CBCT frame (`mesh_restorations.obj`, `mesh_bone.obj`).
+3. **Meshes** as Wavefront **OBJ** in `meshes/`, aligned with the same 3D frame as the landmarks:
+   - **Any number of files** with **any names** ending in `.obj` — all are loaded (sorted alphabetically).
+   - **One mesh** → silhouette drawn in **blue** by default.
+   - **Several meshes** → distinct colours (blue, green, orange, …) in order.
 
 ---
 
@@ -83,4 +84,3 @@ Adjust these constants for your hardware **before** publishing results, or edit 
 ## Overriding the scenario (advanced)
 
 The stock pipeline uses **Scenario A**. To run **Scenario B** (free focal length) for comparison — e.g. sensitivity analysis — set `"pnp_scenario": "B"` in `output/case_metadata.json` after step 1, then run steps 2–3 again. This is optional and **not** the default novice path.
-

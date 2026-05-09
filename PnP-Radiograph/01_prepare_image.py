@@ -236,8 +236,8 @@ def main():
     envelope = {
         "workflow": "Github2-novice-single-image-dicom-only",
         "readme_hint": (
-            "DICOM input only; Scenario A. Landmarks: landmarks/CBCT_3D and "
-            "landmarks/PM_2D."
+            "DICOM input only; Scenario A. Landmarks: landmarks/3D_Landmarks and "
+            "landmarks/2D_Landmarks."
         ),
         **meta,
     }

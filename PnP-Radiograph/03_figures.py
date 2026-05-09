@@ -4,8 +4,15 @@
 Figures for the **novice single-image** workflow.
 
 Reads ``output/pm_full.png``, ``output/pnp_results.json``, and landmarks under
-``landmarks/CBCT_3D`` / ``landmarks/PM_2D``. Generates overlays for the
-**active** scenario only (A or B), as recorded by ``02_pnp.py``.
+``landmarks/3D_Landmarks`` / ``landmarks/2D_Landmarks``.
+
+Loads **every** ``*.obj`` file in ``meshes/`` (alphabetical order, filenames are
+not hard-coded):
+
+  - **One mesh** — silhouette in **blue** (BGR default palette slot 0).
+  - **Several meshes** — distinct colours cycled from the palette.
+
+Generates overlays for the **active** scenario only (A or B), as in ``02_pnp.py``.
 
 Usage
 -----
@@ -19,6 +26,7 @@ Dependencies
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import cv2
@@ -29,18 +37,40 @@ import trimesh
 
 BASE = Path(__file__).parent
 
-MESH1_PATH = BASE / "meshes" / "mesh_restorations.obj"
-MESH2_PATH = BASE / "meshes" / "mesh_bone.obj"
-
-LM_3D_DIR = BASE / "landmarks" / "CBCT_3D"
-LM_2D_DIR = BASE / "landmarks" / "PM_2D"
+LM_3D_DIR = BASE / "landmarks" / "3D_Landmarks"
+LM_2D_DIR = BASE / "landmarks" / "2D_Landmarks"
+MESH_DIR = BASE / "meshes"
 
 META_JSON = BASE / "output" / "case_metadata.json"
 RES_JSON = BASE / "output" / "pnp_results.json"
 FIG_DIR = BASE / "output" / "figures"
 
-GREEN = (0, 210, 80)
-BLUE = (220, 80, 0)
+# BGR order — index 0 is the **blue** default when only one OBJ is present.
+SILHOUETTE_COLORS_BGR = [
+    (220, 80, 0),    # blue
+    (0, 210, 80),    # green
+    (60, 160, 255),  # orange
+    (255, 0, 255),   # magenta
+    (0, 255, 255),   # yellow
+]
+
+
+def list_mesh_obj_files(mesh_dir: Path) -> list[Path]:
+    """All ``*.obj`` / ``*.OBJ`` files under ``mesh_dir``, sorted by filename."""
+    if not mesh_dir.is_dir():
+        return []
+    objs = [
+        p for p in mesh_dir.iterdir()
+        if p.is_file() and p.suffix.lower() == ".obj"
+    ]
+    return sorted(objs, key=lambda p: p.name.lower())
+
+
+def safe_filename_tag(path: Path) -> str:
+    """ASCII-ish slug from OBJ stem for PNG filenames."""
+    raw = path.stem
+    slug = re.sub(r"[^a-zA-Z0-9._-]+", "_", raw).strip("_")
+    return (slug or "mesh")[:72]
 
 
 def project_points(pts3: np.ndarray, K, rvec, tvec, dist) -> np.ndarray:
@@ -317,45 +347,67 @@ def main():
         zoom_box,
     )
 
-    print("\nLoading meshes…")
-    m1 = trimesh.load(str(MESH1_PATH), force="mesh")
-    v1 = np.array(m1.vertices, dtype=np.float64)
-    f1 = np.array(m1.faces, dtype=np.int64)
-    m2 = trimesh.load(str(MESH2_PATH), force="mesh")
-    v2 = np.array(m2.vertices, dtype=np.float64)
-    f2 = np.array(m2.faces, dtype=np.int64)
+    mesh_paths = list_mesh_obj_files(MESH_DIR)
+    if not mesh_paths:
+        print(
+            "\n⚠  No .obj files in meshes/ — skipping silhouette figures "
+            "(landmark overlays were still saved)."
+        )
+    else:
+        print(f"\nLoading {len(mesh_paths)} mesh file(s) from {MESH_DIR.name}/ …")
+        cam = camera_world_position(rvec, tvec)
+        mesh_zoom_box = expand_zoom_box(zoom_box, img_bgr, factor=1.3)
 
-    cam = camera_world_position(rvec, tvec)
-    pts1_2d = project_points(v1, K, rvec, tvec, dist)
-    sil1 = silhouette_edges(v1, f1, cam)
-    pts2_2d = project_points(v2, K, rvec, tvec, dist)
-    sil2 = silhouette_edges(v2, f2, cam)
-    print(f"  Silhouette edges : restorations {len(sil1):,}  |  bone {len(sil2):,}")
+        loaded: list[tuple] = []
+        for idx, mpath in enumerate(mesh_paths):
+            try:
+                tm = trimesh.load(str(mpath), force="mesh")
+            except Exception as exc:
+                print(f"  ⚠  Skip {mpath.name}: {exc}")
+                continue
+            v = np.array(tm.vertices, dtype=np.float64)
+            f = np.array(tm.faces, dtype=np.int64)
+            if f.size == 0:
+                print(f"  ⚠  Skip {mpath.name}: empty mesh")
+                continue
+            pts_2d = project_points(v, K, rvec, tvec, dist)
+            sil = silhouette_edges(v, f, cam)
+            color = SILHOUETTE_COLORS_BGR[idx % len(SILHOUETTE_COLORS_BGR)]
+            tag = safe_filename_tag(mpath)
+            prefix = f"{idx + 1:02d}_{tag}"
+            print(
+                f"  [{prefix}] {mpath.name} — {len(sil):,} silhouette edges "
+                f"(BGR colour slot {idx % len(SILHOUETTE_COLORS_BGR)})"
+            )
+            loaded.append((pts_2d, sil, color, prefix))
 
-    mesh_zoom_box = expand_zoom_box(zoom_box, img_bgr, factor=1.3)
+        if not loaded:
+            print("  ⚠  No mesh could be rendered — check OBJ validity.")
+        else:
+            for pts_2d, sil, color, prefix in loaded:
+                r_single = draw_silhouette(
+                    img_bgr.copy(), pts_2d, sil, color, alpha=0.80
+                )
+                p_single = FIG_DIR / f"mesh_silhouette_{prefix}_{sc_tag}.png"
+                cv2.imwrite(str(p_single), r_single)
+                print(f"  → {p_single.name}")
+                save_zoomed_crop(
+                    r_single,
+                    mesh_zoom_box,
+                    FIG_DIR / f"mesh_silhouette_{prefix}_{sc_tag}_zoomed.png",
+                )
 
-    r2 = draw_silhouette(img_bgr.copy(), pts1_2d, sil1, GREEN, alpha=0.80)
-    p2 = FIG_DIR / f"mesh_silhouette_restorations_{sc_tag}.png"
-    cv2.imwrite(str(p2), r2)
-    print(f"  → {p2.name}")
-    save_zoomed_crop(
-        r2, mesh_zoom_box, FIG_DIR / f"mesh_silhouette_restorations_{sc_tag}_zoomed.png"
-    )
-
-    r3 = draw_silhouette(img_bgr.copy(), pts2_2d, sil2, BLUE, alpha=0.80)
-    p3 = FIG_DIR / f"mesh_silhouette_bone_{sc_tag}.png"
-    cv2.imwrite(str(p3), r3)
-    print(f"  → {p3.name}")
-    save_zoomed_crop(
-        r3, mesh_zoom_box, FIG_DIR / f"mesh_silhouette_bone_{sc_tag}_zoomed.png"
-    )
-
-    r4 = draw_silhouette(img_bgr.copy(), pts1_2d, sil1, GREEN, alpha=0.25)
-    r4 = draw_silhouette(r4, pts2_2d, sil2, BLUE, alpha=0.25)
-    p4 = FIG_DIR / f"mesh_combined_{sc_tag}.png"
-    cv2.imwrite(str(p4), r4)
-    print(f"  → {p4.name}")
-    save_zoomed_crop(r4, zoom_box, FIG_DIR / f"mesh_combined_{sc_tag}_zoomed.png")
+            r_comb = img_bgr.copy()
+            for pts_2d, sil, color, _ in loaded:
+                r_comb = draw_silhouette(
+                    r_comb, pts_2d, sil, color, alpha=0.25
+                )
+            p_comb = FIG_DIR / f"mesh_combined_{sc_tag}.png"
+            cv2.imwrite(str(p_comb), r_comb)
+            print(f"  → {p_comb.name}")
+            save_zoomed_crop(
+                r_comb, zoom_box, FIG_DIR / f"mesh_combined_{sc_tag}_zoomed.png"
+            )
 
     print(f"\n✔ Figures saved under {FIG_DIR.relative_to(BASE)}")
 

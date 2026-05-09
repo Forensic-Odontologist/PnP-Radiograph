@@ -12,8 +12,8 @@ scenario:
 
 Landmarks (3D Slicer FCSV):
 
-  - ``landmarks/CBCT_3D/`` — 3D points (CBCT / LPS, mm)
-  - ``landmarks/PM_2D/``   — 2D points on the radiograph
+  - ``landmarks/3D_Landmarks/`` — 3D points (volume / LPS, mm)
+  - ``landmarks/2D_Landmarks/`` — 2D points on the radiograph
 
 Output: ``output/pnp_results.json``
 
@@ -36,8 +36,8 @@ import numpy as np
 
 BASE = Path(__file__).parent
 
-LM_3D_DIR = BASE / "landmarks" / "CBCT_3D"
-LM_2D_DIR = BASE / "landmarks" / "PM_2D"
+LM_3D_DIR = BASE / "landmarks" / "3D_Landmarks"
+LM_2D_DIR = BASE / "landmarks" / "2D_Landmarks"
 META_JSON = BASE / "output" / "case_metadata.json"
 OUT_JSON = BASE / "output" / "pnp_results.json"
 
