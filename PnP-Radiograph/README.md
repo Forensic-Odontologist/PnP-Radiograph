@@ -7,6 +7,9 @@ This folder is a **simplified** companion to `Github/`. It targets users who nee
 
 Scripts do **not** embed case-specific device names or manuscript context; defaults are generic and editable in `01_prepare_image.py`.
 
+
+<img width="1020" height="652" alt="mesh_silhouette_01_Segmentation_A_zoomed" src="https://github.com/user-attachments/assets/c3ac3357-54e3-41fc-95b7-38a73b828a00" />
+
 ---
 
 ## Installation
