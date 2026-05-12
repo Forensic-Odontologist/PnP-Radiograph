@@ -1,16 +1,13 @@
 """
 03_figures.py
 =============
-Step 3 — Publication-quality figure generation.
+Step 3 — Publication-quality figure generation **per intra-operator session**.
 
-For each PM image (img1, img2), produces:
-  - overlay_landmarks_{scenario}.png   : manually annotated 2D landmarks
-                                         + reprojected 3D CBCT landmarks
-  - mesh_silhouette_green_{scenario}.png : dental restoration silhouette (green)
-  - mesh_silhouette_blue_{scenario}.png  : bone/osseous structure silhouette (blue)
-  - mesh_combined_{scenario}.png         : combined overlay (25% opacity each)
+For each ``Session*`` folder (paired 2D/3D landmarks) and each PM image
+(img1 = PM1, img2 = PM2), writes figures under ``output/{Session*}/img*/``:
 
-The scenario used for figures is configurable (see SCENARIO constant below).
+  - overlay_landmarks_{A|B}.png
+  - mesh silhouettes and combined overlays (same layout as Workflow_v2)
 
 Usage
 -----
@@ -40,16 +37,17 @@ BASE = Path(__file__).parent
 MESH1_PATH = BASE / "meshes" / "mesh_restorations.obj"   # dental restorations (green)
 MESH2_PATH = BASE / "meshes" / "mesh_bone.obj"           # osseous structures  (blue)
 
-LM_3D_DIR = BASE / "landmarks" / "AM_3D"
-LM_2D_DIR = BASE / "landmarks"
+LM_ROOT = BASE / "landmarks"
+LM_3D_ROOT = LM_ROOT / "3D_Landmarks"
+LM_PM1_ROOT = LM_ROOT / "2D_Landmarks_PM1"
+LM_PM2_ROOT = LM_ROOT / "2D_Landmarks_PM2"
+SESSION_NAMES = ("Session1", "Session2", "Session3")
 
 DICOM_DIR  = BASE.parent / "Data" / "PM-2D-Anon" / "UNNAMED"
 DICOM_IMG1 = DICOM_DIR / "00010001"
 DICOM_IMG2 = DICOM_DIR / "00020001"
 
 META_JSON = BASE / "output" / "case_metadata.json"
-RES_IMG1  = BASE / "output" / "img1" / "pnp_results.json"
-RES_IMG2  = BASE / "output" / "img2" / "pnp_results.json"
 
 # Scenarios to generate figures for (both A and B by default)
 SCENARIOS = ["scenario_A", "scenario_B"]
@@ -291,12 +289,12 @@ def save_zoomed_crop(img_bgr, zoom_box, out_path):
 # PER-IMAGE PROCESSING
 # ─────────────────────────────────────────────────────────────────────────────
 
-def process(img_label: str, dicom_path: Path, res_path: Path,
-            lm2d_dir: Path,
+def process(session: str, img_label: str, dicom_path: Path, res_path: Path,
+            lm2d_dir: Path, lm3d_dir: Path,
             mesh_v1, mesh_f1, mesh_v2, mesh_f2):
-    """Generate all publication figures for one PM image (both scenarios)."""
+    """Generate all publication figures for one PM image and one session."""
     print(f"\n{'='*60}")
-    print(f"Image: {img_label}")
+    print(f"{session} | Image: {img_label}")
     print(f"{'='*60}")
 
     if not res_path.exists():
@@ -312,11 +310,11 @@ def process(img_label: str, dicom_path: Path, res_path: Path,
 
     # Load image and landmarks once (shared across scenarios)
     img_bgr = load_dicom_image(dicom_path)
-    out_dir = BASE / "output" / img_label
+    out_dir = BASE / "output" / session / img_label
     out_dir.mkdir(parents=True, exist_ok=True)
 
     lm2d: dict = load_fcsv_labels(lm2d_dir) if lm2d_dir.exists() else {}
-    lm3d: dict = load_fcsv_labels(LM_3D_DIR)
+    lm3d: dict = load_fcsv_labels(lm3d_dir) if lm3d_dir.exists() else {}
 
     labels = res["labels"]
     pts3   = np.array([lm3d[k]     for k in labels if k in lm3d], dtype=np.float64)
@@ -353,7 +351,7 @@ def process(img_label: str, dicom_path: Path, res_path: Path,
         zoom_box = compute_zoom_box(img_bgr, [pts2, proj])
 
         # Figure 1: Landmark overlay (full + zoomed)
-        title    = f"Scenario {sc_tag} — {img_label} — {series}"
+        title    = f"{session} | Scenario {sc_tag} — {img_label} — {series}"
         out_lm   = out_dir / f"overlay_landmarks_{sc_tag}.png"
         out_zoom = out_dir / f"overlay_landmarks_{sc_tag}_zoomed.png"
         figure_landmarks(img_bgr, pts2, proj, labels, per_pt, title, out_lm)
@@ -419,14 +417,21 @@ def main():
     f2 = np.array(m2.faces,    dtype=np.int64)
     print(f"  Mesh 2 (bone)         : {len(v2):,} vertices  {len(f2):,} triangles")
 
-    # ── Process each image ────────────────────────────────────────────────────
-    lm2d_img1 = LM_2D_DIR / "PM_2D_img1"
-    lm2d_img2 = LM_2D_DIR / "PM_2D_img2"
+    for session in SESSION_NAMES:
+        res1 = BASE / "output" / session / "img1" / "pnp_results.json"
+        res2 = BASE / "output" / session / "img2" / "pnp_results.json"
+        if not res1.exists() and not res2.exists():
+            print(f"\n⚠  No PnP results for {session} — run 02_pnp.py first.")
+            continue
+        lm3d_a = LM_3D_ROOT / session
+        lm_pm1 = LM_PM1_ROOT / session
+        lm_pm2 = LM_PM2_ROOT / session
+        if res1.exists():
+            process(session, "img1", DICOM_IMG1, res1, lm_pm1, lm3d_a, v1, f1, v2, f2)
+        if res2.exists():
+            process(session, "img2", DICOM_IMG2, res2, lm_pm2, lm3d_a, v1, f1, v2, f2)
 
-    process("img1", DICOM_IMG1, RES_IMG1, lm2d_img1, v1, f1, v2, f2)
-    process("img2", DICOM_IMG2, RES_IMG2, lm2d_img2, v1, f1, v2, f2)
-
-    print("\n✔ Done — figures saved in Workflow_v1/output/img1/ and img2/")
+    print("\n✔ Done — figures under output/<Session*>/img1/ and img2/")
 
 
 if __name__ == "__main__":
