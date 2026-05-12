@@ -1,4 +1,0 @@
-# Markups fiducial file version = 5.10
-# CoordinateSystem = LPS
-# columns = id,x,y,z,ow,ox,oy,oz,vis,sel,lock,label,desc,associatedNodeID
-1,149.56488481398247,264.5057409074677,0,0,0,0,1,1,1,0,48,,vtkMRMLScalarVolumeNode2,2,0
