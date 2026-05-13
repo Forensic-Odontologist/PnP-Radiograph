@@ -74,6 +74,35 @@ Step 1 writes **Scenario A** metadata. Step 2 solves the scenario specified in `
 
 ---
 
+## Example Output
+
+The registration results are automatically exported to a json file : output/pnp_results.json
+
+This file contains:
+- registration metrics (RMSE in pixels and millimetres),
+- estimated camera pose parameters,
+- intrinsic camera matrix,
+- per-landmark reprojection errors,
+- and scenario-specific calibration data.
+
+Example results obtained under Scenario A :
+
+| Metric | Value |
+|---|---|
+| Number of landmarks | 8 |
+| RMSE (px) | 2.45 px |
+| RMSE (mm) | 0.36 mm |
+| Focal length | 650 mm |
+| Rotation (X/Y/Z) | 76.2° / 3.0° / -6.77° |
+| Translation Z | 511.96 mm |
+| Best landmark error | 0.97 px |
+| Worst landmark error | 3.75 px |
+
+The full JSON structure also includes per-landmark reprojection errors and camera calibration parameters.
+
+---
+
+
 ## Metadata defaults (DICOM)
 
 If distance tags are missing, `01_prepare_image.py` uses:
