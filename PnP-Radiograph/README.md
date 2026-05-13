@@ -1,3 +1,4 @@
+
 # Novice single-image workflow (CBCT × one plain radiograph)
 
 This folder is a **simplified** workflow for PnP Radiograph alignment. It targets users who need:
@@ -10,6 +11,8 @@ Scripts do **not** embed case-specific device names or manuscript context; defau
 <img width="1382" height="489" alt="Illustration-Github" src="https://github.com/user-attachments/assets/5257c56b-08c4-4ba2-94fe-48d20cc64e8b" />
 
 <img width="1020" height="652" alt="mesh_silhouette_01_Segmentation_A_zoomed" src="https://github.com/user-attachments/assets/c3ac3357-54e3-41fc-95b7-38a73b828a00" />
+
+<img width="993" height="657" alt="overlay_landmarks_A_zoomed" src="https://github.com/user-attachments/assets/108f0c65-c2b0-4491-b563-4116c6bb1530" />
 
 ---
 
