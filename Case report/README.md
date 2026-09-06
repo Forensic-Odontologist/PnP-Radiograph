@@ -19,6 +19,8 @@ superimposition — to the radiographic domain, replacing the photographic
 modality with DICOM-formatted plain radiographs and the IOS dental scan
 with a CBCT-derived 3D mesh.
 
+[![3D Slicer - 2D/3D alignment](https://img.youtube.com/vi/hut6k3UjHxk/hqdefault.jpg)](https://www.youtube.com/watch?v=hut6k3UjHxk)
+
 ---
 
 ## Landmark layout
